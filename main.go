@@ -12,4 +12,6 @@ func main() {
 
 	log.Println("Server started")
 	log.Fatal(http.ListenAndServe(":9000", nil))
+
+	log.Println("Rian was here")
 }
