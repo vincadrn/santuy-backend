@@ -1,0 +1,10 @@
+server:
+  host: localhost
+  port: 8080
+client:
+  host: localhost
+  port: 5173
+secretKeeper: local
+cors:
+  allowedOrigins:
+    - 'http://localhost:5173'
