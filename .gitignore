@@ -26,3 +26,7 @@ go.work.sum
 
 # liquibase
 liquibase
+
+# exec
+santuy
+main

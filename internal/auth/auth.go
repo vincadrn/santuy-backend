@@ -13,8 +13,8 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 
-	"vincadrn.com/santuy/config"
-	"vincadrn.com/santuy/model"
+	config "vincadrn.com/santuy/configs"
+	"vincadrn.com/santuy/internal/model"
 )
 
 var (

@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"vincadrn.com/santuy/auth"
-	"vincadrn.com/santuy/config"
-	"vincadrn.com/santuy/model"
+	config "vincadrn.com/santuy/configs"
+	"vincadrn.com/santuy/internal/auth"
+	"vincadrn.com/santuy/internal/model"
 )
 
 func AuthMiddleware(next http.Handler) http.Handler {
