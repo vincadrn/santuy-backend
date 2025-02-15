@@ -4,7 +4,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 
 	config "vincadrn.com/santuy/configs"
 	"vincadrn.com/santuy/internal/auth"
@@ -14,8 +13,9 @@ import (
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		publicURL := map[string]bool{
-			"/auth/login": true,
-			"/oauth2":     true,
+			"/v1/auth/login":   true,
+			"/v1/auth/session": true,
+			"/oauth2":          true,
 		}
 		if publicURL[r.URL.Path] {
 			next.ServeHTTP(w, r)
@@ -23,15 +23,21 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		}
 
 		store := auth.Session()
-		session, err := store.Get(r, auth.SESSION_NAME)
+		session, err := store.Get(r, auth.API_SESSION_NAME)
 		if err != nil {
 			model.ResponseWithErrorDefault(w, err, http.StatusInternalServerError)
 			return
 		}
 
-		fooVal := session.Values["foo"]
+		log.Println("In auth middleware. Session values:", session)
+
+		if session.Values["email"] == nil {
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+			return
+		}
+		userEmail := session.Values["email"].(string)
 		log.Println("---- Session in `auth-middleware`:", session.Values)
-		if fooVal == "bar" {
+		if userEmail != "" {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -42,14 +48,30 @@ func AuthMiddleware(next http.Handler) http.Handler {
 
 func CORSMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		allowedOrigins := config.Configuration().CORS.AllowedOrigins
-		if len(allowedOrigins) > 0 {
-			w.Header().Set("Access-Control-Allow-Origin", strings.Join(config.Configuration().CORS.AllowedOrigins, ","))
+		allowedOrigins := make(map[string]bool)
+		for _, allowedOrigin := range config.Configuration().CORS.AllowedOrigins {
+			allowedOrigins[allowedOrigin] = true
 		}
+		origin := r.Header.Get("Origin")
+		if !allowedOrigins[origin] {
+			http.Error(w, "Origin not allowed", http.StatusForbidden)
+			return
+		}
+
+		w.Header().Set("Access-Control-Allow-Origin", origin)
 		if os.Getenv("ENVIRONMENT") == "LOCAL" {
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
 		}
-		w.Header().Set("Access-Control-Allow-Methods", "OPTIONS, GET, POST, PUT")
+
+		authEndpoints := map[string]bool{
+			"/v1/auth/login":    true,
+			"/v1/auth/callback": true,
+		}
+		if authEndpoints[r.URL.Path] {
+			w.Header().Set("Access-Control-Allow-Methods", "OPTIONS, POST")
+		} else {
+			w.Header().Set("Access-Control-Allow-Methods", "OPTIONS, GET, POST, PUT")
+		}
 
 		if r.Method == "OPTIONS" {
 			w.Write([]byte("allowed"))
