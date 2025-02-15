@@ -79,7 +79,7 @@ func parseFlag() (string, error) {
 	// Capability to use another config file
 	// by supplying -config flag.
 	// Default to config.yaml
-	flag.StringVar(&configPath, "config", "./config.yaml", "path to config file")
+	flag.StringVar(&configPath, "config", "./configs/config.yaml", "path to config file")
 
 	flag.Parse()
 
