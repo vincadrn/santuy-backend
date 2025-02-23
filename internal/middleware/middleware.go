@@ -3,7 +3,6 @@ package middleware
 import (
 	"log"
 	"net/http"
-	"os"
 
 	config "vincadrn.com/santuy/configs"
 	"vincadrn.com/santuy/internal/auth"
@@ -36,7 +35,6 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 		userEmail := session.Values["email"].(string)
-		log.Println("---- Session in `auth-middleware`:", session.Values)
 		if userEmail != "" {
 			next.ServeHTTP(w, r)
 			return
@@ -59,9 +57,7 @@ func CORSMiddleware(next http.Handler) http.Handler {
 		}
 
 		w.Header().Set("Access-Control-Allow-Origin", origin)
-		if os.Getenv("ENVIRONMENT") == "LOCAL" {
-			w.Header().Set("Access-Control-Allow-Credentials", "true")
-		}
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
 
 		authEndpoints := map[string]bool{
 			"/v1/auth/login":    true,

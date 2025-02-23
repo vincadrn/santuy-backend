@@ -28,7 +28,7 @@ func init() {
 		obtainer = LocalOAuthCredentials{}
 	}
 
-	redirectHost := conf.Client.Host
+	redirectHost := config.GetAllowedClientHost()
 
 	OauthConfig = oauth2.Config{
 		ClientID:     obtainer.GetOAuthClientID(),
