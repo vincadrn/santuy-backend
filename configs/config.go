@@ -18,11 +18,6 @@ type Config struct {
 		Port string `yaml:"port"`
 	}
 
-	Client struct {
-		Host string `yaml:"host"`
-		Port string `yaml:"port"`
-	}
-
 	SecretKeeper string `yaml:"secretKeeper"`
 
 	CORS struct {
@@ -43,6 +38,10 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func GetAllowedClientHost() string {
+	return os.Getenv("CLIENT_HOST")
 }
 
 func Configuration() *Config {

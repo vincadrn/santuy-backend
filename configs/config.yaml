@@ -1,9 +1,6 @@
 server:
   host: localhost
   port: 8080
-client:
-  host: tvlknika-development.vincadrn.com
-  port: 443
 secretKeeper: local
 cors:
   allowedOrigins:

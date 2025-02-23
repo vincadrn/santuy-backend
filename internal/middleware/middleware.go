@@ -36,7 +36,6 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 		userEmail := session.Values["email"].(string)
-		log.Println("---- Session in `auth-middleware`:", session.Values)
 		if userEmail != "" {
 			next.ServeHTTP(w, r)
 			return

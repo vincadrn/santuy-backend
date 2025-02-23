@@ -4,6 +4,7 @@ go 1.23.2
 
 require (
 	github.com/gorilla/sessions v1.4.0
+	github.com/lib/pq v1.10.9
 	golang.org/x/oauth2 v0.25.0
 	google.golang.org/api v0.219.0
 	gopkg.in/yaml.v3 v3.0.1

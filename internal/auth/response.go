@@ -3,18 +3,21 @@ package auth
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 
-	"math/rand/v2"
-	"strconv"
+	"crypto/rand"
 
 	"golang.org/x/oauth2"
 	"google.golang.org/api/option"
 	"google.golang.org/api/people/v1"
+
+	config "vincadrn.com/santuy/configs"
 	"vincadrn.com/santuy/internal/model"
 )
 
@@ -25,7 +28,7 @@ type OAuthURLResponse struct {
 
 func RequestAuth() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
+		if r.Method != http.MethodGet {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
@@ -36,9 +39,14 @@ func RequestAuth() http.Handler {
 			log.Fatal(err)
 		}
 
+		OauthConfig.RedirectURL = fmt.Sprintf("%s/oauth2", r.Header.Get("Origin"))
 		verifier := oauth2.GenerateVerifier()
-		randomizer := rand.ChaCha8{}
-		randomState := strconv.FormatUint(randomizer.Uint64(), 16)
+		randomBytes := make([]byte, 8)
+		_, err = rand.Read(randomBytes)
+		if err != nil {
+			log.Fatal(err)
+		}
+		randomState := hex.EncodeToString(randomBytes)
 		url := OauthConfig.AuthCodeURL(randomState, oauth2.AccessTypeOffline, oauth2.S256ChallengeOption(verifier))
 
 		session.Values["oauth2_verifier"] = verifier
@@ -48,7 +56,6 @@ func RequestAuth() http.Handler {
 			model.ResponseWithErrorDefault(w, err, http.StatusInternalServerError)
 			return
 		}
-		log.Println("---- Session in `login`:", session.Values, "\nURL:", url)
 
 		oauthResponse := OAuthURLResponse{
 			Status:   http.StatusOK,
@@ -102,12 +109,13 @@ func RequestSession() http.Handler {
 		hostName := parsedURI.Host
 		code := parsedURI.Query()["code"][0]
 		state := parsedURI.Query()["state"][0]
-		if hostName != conf.Client.Host {
+		if hostName != config.GetAllowedClientHost() {
 			http.Error(w, "invalid hostname", http.StatusForbidden)
 			return
 		}
 		savedState := session.Values["oauth2_state"]
 		if state != savedState {
+			log.Println("--- state:", state, "---- savedState:", savedState)
 			http.Error(w, "invalid state", http.StatusInternalServerError)
 			return
 		}
@@ -123,10 +131,6 @@ func RequestSession() http.Handler {
 			return
 		}
 
-		// e := json.NewEncoder(w)
-		// e.SetIndent("", "  ")
-		// e.Encode(*token)
-
 		ctx := context.Background()
 		peopleService, err := people.NewService(ctx, option.WithTokenSource(OauthConfig.TokenSource(ctx, token)))
 
@@ -136,9 +140,6 @@ func RequestSession() http.Handler {
 			return
 		}
 		emailAddress := userInfo.EmailAddresses[0].Value
-		log.Println("User info: ", *userInfo)
-		log.Println("Email addresses: ", userInfo.EmailAddresses)
-		log.Println("Email address: ", emailAddress)
 		session.Values["email"] = emailAddress
 		err = session.Save(r, w)
 		if err != nil {
