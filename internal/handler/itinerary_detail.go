@@ -76,6 +76,11 @@ func listItineraryDetails(svc *service.ItineraryService, ctx context.Context) ht
 			return
 		}
 
-		w.Write(response)
+		_, err = w.Write(response)
+		if err != nil {
+			slog.Error("Cannot write response", "response", response)
+			slog.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		}
 	})
 }

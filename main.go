@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 
@@ -28,6 +29,11 @@ func main() {
 
 	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=verify-full", user, pass, host, port, dbName)
 	db, err := sql.Open("postgres", connStr)
+	if err != nil {
+		slog.Error("Cannot create database connection")
+		slog.Error(err.Error())
+	}
+
 	defer db.Close()
 
 	if err != nil {
@@ -69,5 +75,12 @@ func main() {
 	server.Handler = handler
 
 	log.Println("Server started at " + server.Addr)
-	server.ListenAndServe()
+	err = server.ListenAndServe()
+	if err != nil {
+		errMsg := "Cannot start server"
+		slog.Error(errMsg)
+		slog.Error(err.Error())
+
+		panic(errMsg)
+	}
 }

@@ -34,7 +34,6 @@ func (r *itineraryRepository) ListItineraries(ctx context.Context, groupId strin
 		`,
 		groupId, vacationId,
 	)
-	defer rows.Close()
 
 	if err != nil {
 		slog.Error("Cannot list itineraries", "group", groupId, "vacation", vacationId)
@@ -42,6 +41,8 @@ func (r *itineraryRepository) ListItineraries(ctx context.Context, groupId strin
 
 		return nil, err
 	}
+
+	defer rows.Close()
 
 	itineraries := &model.Itineraries{}
 
@@ -75,7 +76,6 @@ func (r *itineraryRepository) ListItineraryDetails(ctx context.Context, groupId 
 		`,
 		groupId, itineraryId,
 	)
-	defer rows.Close()
 
 	if err != nil {
 		slog.Error("Cannot list itinerary details", "itinerary", itineraryId)
@@ -83,6 +83,8 @@ func (r *itineraryRepository) ListItineraryDetails(ctx context.Context, groupId 
 
 		return nil, err
 	}
+
+	defer rows.Close()
 
 	itineraryDetails := &model.ItineraryDetails{}
 	for rows.Next() {

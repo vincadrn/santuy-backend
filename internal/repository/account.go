@@ -63,7 +63,14 @@ func (r *accountRepository) SaveUser(ctx context.Context, user *model.User) erro
 func (r *accountRepository) ListGroupsByUser(ctx context.Context, user *model.User) (*[]model.GroupRole, error) {
 	slog.Info("Attempting to list groups by user", "user", user.Email)
 	tx, err := r.db.Begin()
-	defer tx.Rollback()
+	defer func() {
+		if p := recover(); p != nil {
+			_ = tx.Rollback()
+			panic(p)
+		} else if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
 
 	if err != nil {
 		slog.Error("Cannot start tx for listing groups by user", "user", user.Email)
@@ -112,7 +119,13 @@ func (r *accountRepository) ListGroupsByUser(ctx context.Context, user *model.Us
 		*groups = append(*groups, group)
 	}
 
-	tx.Commit()
+	err = tx.Commit()
+	if err != nil {
+		slog.Error("Cannot commit tx when listing groups")
+		slog.Error(err.Error())
+
+		return nil, err
+	}
 
 	return groups, nil
 }
@@ -120,7 +133,14 @@ func (r *accountRepository) ListGroupsByUser(ctx context.Context, user *model.Us
 func (r *accountRepository) SetUserToGroup(ctx context.Context, user *model.User, group *model.Group) error {
 	slog.Info("Attempting to set user to group", "user", user.Email, "group", group.Id)
 	tx, err := r.db.Begin()
-	defer tx.Rollback()
+	defer func() {
+		if p := recover(); p != nil {
+			_ = tx.Rollback()
+			panic(p)
+		} else if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
 
 	if err != nil {
 		slog.Error("Cannot start tx to set user to group", "user", user.Email, "group", group.Id)
@@ -159,7 +179,13 @@ func (r *accountRepository) SetUserToGroup(ctx context.Context, user *model.User
 	affectedRows, _ := res.RowsAffected()
 	slog.Info("Set user to group successful", "user", user.Email, "group", group.Id, "affected_rows", affectedRows)
 
-	tx.Commit()
+	err = tx.Commit()
+	if err != nil {
+		slog.Error("Cannot commit tx when setting user to group")
+		slog.Error(err.Error())
+
+		return err
+	}
 
 	return nil
 }
