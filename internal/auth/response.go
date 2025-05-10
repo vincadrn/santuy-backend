@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 
@@ -19,6 +20,8 @@ import (
 
 	config "vincadrn.com/santuy/configs"
 	"vincadrn.com/santuy/internal/model"
+	"vincadrn.com/santuy/internal/service"
+	"vincadrn.com/santuy/internal/session"
 )
 
 type OAuthURLResponse struct {
@@ -26,34 +29,40 @@ type OAuthURLResponse struct {
 	OAuthURL string `json:"oauth_url"`
 }
 
-func RequestAuth() http.Handler {
+func RequestAuth(svc *service.AccountService, ctx context.Context) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
 
-		store := Session()
-		session, err := store.Get(r, API_SESSION_NAME)
-		if err != nil {
-			log.Fatal(err)
-		}
+		sessionProvider := session.NewSessionProvider(w, r)
 
 		OauthConfig.RedirectURL = fmt.Sprintf("%s/oauth2", r.Header.Get("Origin"))
 		verifier := oauth2.GenerateVerifier()
 		randomBytes := make([]byte, 8)
-		_, err = rand.Read(randomBytes)
+		_, err := rand.Read(randomBytes)
 		if err != nil {
 			log.Fatal(err)
 		}
 		randomState := hex.EncodeToString(randomBytes)
 		url := OauthConfig.AuthCodeURL(randomState, oauth2.AccessTypeOffline, oauth2.S256ChallengeOption(verifier))
 
-		session.Values["oauth2_verifier"] = verifier
-		session.Values["oauth2_state"] = randomState
-		err = session.Save(r, w)
+		err = sessionProvider.SetOAuth2Verifier(verifier)
 		if err != nil {
-			model.ResponseWithErrorDefault(w, err, http.StatusInternalServerError)
+			slog.Error("Cannot set oauth verifier")
+			slog.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+
+			return
+		}
+
+		err = sessionProvider.SetOAuth2State(randomState)
+		if err != nil {
+			slog.Error("Cannot set oauth state")
+			slog.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+
 			return
 		}
 
@@ -68,29 +77,26 @@ func RequestAuth() http.Handler {
 
 		err = enc.Encode(oauthResponse)
 		if err != nil {
-			model.ResponseWithErrorDefault(w, err, http.StatusInternalServerError)
+			http.Error(w, "OAuth error", http.StatusInternalServerError)
+			return
 		}
+
 		w.Write(buf.Bytes())
 	})
 }
 
-func RequestSession() http.Handler {
+func RequestSession(svc *service.AccountService, ctx context.Context) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 			return
 		}
 
-		store := Session()
-		session, err := store.Get(r, API_SESSION_NAME)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		defer r.Body.Close()
+		sessionProvider := session.NewSessionProvider(w, r)
 
 		var redirectURI OAuthRedirectURI
 		bodyBytes, err := io.ReadAll(r.Body)
+		defer r.Body.Close()
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -113,15 +119,27 @@ func RequestSession() http.Handler {
 			http.Error(w, "invalid hostname", http.StatusForbidden)
 			return
 		}
-		savedState := session.Values["oauth2_state"]
+
+		savedState, err := sessionProvider.GetOAuth2State()
 		if state != savedState {
-			log.Println("--- state:", state, "---- savedState:", savedState)
-			http.Error(w, "invalid state", http.StatusInternalServerError)
+			slog.Error("Cannot retrieve saved oauth state", "state", state, "saved state", savedState)
+
+			if err != nil {
+				slog.Error(err.Error())
+			}
+
+			http.Error(w, "Invalid state", http.StatusInternalServerError)
+
 			return
 		}
-		savedCodeVerifier, codeVerifierIsValid := session.Values["oauth2_verifier"].(string)
-		if !codeVerifierIsValid {
-			http.Error(w, "invalid verifier", http.StatusInternalServerError)
+
+		savedCodeVerifier, err := sessionProvider.GetOAuth2Verifier()
+		if err != nil {
+			slog.Error("Cannot retrieve saved oauth verifier", "state", state, "saved state", savedState)
+			slog.Error(err.Error())
+
+			http.Error(w, "Invalid verifier", http.StatusInternalServerError)
+
 			return
 		}
 
@@ -131,22 +149,66 @@ func RequestSession() http.Handler {
 			return
 		}
 
+		// Google OAuth email retrieval
 		ctx := context.Background()
 		peopleService, err := people.NewService(ctx, option.WithTokenSource(OauthConfig.TokenSource(ctx, token)))
 
-		userInfo, err := peopleService.People.Get("people/me").PersonFields("emailAddresses").Do()
+		userInfo, err := peopleService.People.Get("people/me").PersonFields("names,emailAddresses").Do()
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		userName := userInfo.Names[0].DisplayName
 		emailAddress := userInfo.EmailAddresses[0].Value
-		session.Values["email"] = emailAddress
-		err = session.Save(r, w)
+
+		err = sessionProvider.SetUserName(userName)
 		if err != nil {
-			model.ResponseWithErrorDefault(w, err, http.StatusInternalServerError)
+			slog.Error("Cannot set user name")
+			slog.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+
 			return
 		}
-		log.Println("Session values:", session)
+
+		err = sessionProvider.SetUserEmail(emailAddress)
+		if err != nil {
+			slog.Error("Cannot set user email")
+			slog.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+
+			return
+		}
+
+		// Save user in db
+		user := model.User{
+			Name:  userName,
+			Email: emailAddress,
+		}
+		svc.SaveUser(ctx, &user)
+
+		// Clear oauth session
+		sessionProvider.SetOAuth2State("")
+		sessionProvider.SetOAuth2Verifier("")
+
+		w.Write([]byte("OK"))
+	})
+}
+
+func RequestLogout() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		sessionProvider := session.NewSessionProvider(w, r)
+
+		sessionProvider.SetUserEmail("")
+		sessionProvider.SetUserName("")
+		sessionProvider.SetCurrentGroupRole(session.GroupRole{})
+		sessionProvider.SetOAuth2State("")
+		sessionProvider.SetOAuth2Verifier("")
 
 		w.Write([]byte("OK"))
 	})

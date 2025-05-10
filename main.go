@@ -13,6 +13,8 @@ import (
 	"vincadrn.com/santuy/internal/auth"
 	"vincadrn.com/santuy/internal/handler"
 	"vincadrn.com/santuy/internal/middleware"
+	"vincadrn.com/santuy/internal/repository"
+	"vincadrn.com/santuy/internal/service"
 )
 
 func main() {
@@ -32,19 +34,31 @@ func main() {
 		log.Fatal("Cannot connect to database.")
 	}
 
+	// Initialize repo and service
+	accountRepo := repository.NewAccountRepository(db)
+	accountService := service.NewAccountService(accountRepo)
+	itineraryRepo := repository.NewItineraryRepository(db)
+	itineraryService := service.NewItineraryService(itineraryRepo)
+
 	ctx := context.Background()
 
 	mux := http.NewServeMux()
 
-	mux.Handle("/v1/auth/login", auth.RequestAuth())
-	mux.Handle("/v1/auth/session", auth.RequestSession())
+	mux.Handle("/v1/auth/login", auth.RequestAuth(accountService, ctx))
+	mux.Handle("/v1/auth/session", auth.RequestSession(accountService, ctx))
+	mux.Handle("/v1/auth/logout", auth.RequestLogout())
 
-	mux.Handle("/v1/users/{userId}", handler.GetUserHandler())
-	mux.Handle("/v1/groups", handler.ListGroups())
-	mux.Handle("/v1/groups/{groupId}", handler.GroupHandler())
+	// User & group
+	mux.Handle("/v1/user", handler.UserHandler(accountService, ctx))
+	mux.Handle("/v1/group", handler.GroupHandler(accountService, ctx))
 
-	mux.Handle("/v1/itineraries", handler.ListItineraries())
-	mux.Handle("/v1/itineraries/{itineraryId}", handler.GetItinerary(db, ctx))
+	// Itinerary
+	mux.Handle("/v1/itineraries", handler.ItineraryHandler(itineraryService, ctx))
+	mux.Handle("/v1/itineraries/{itineraryId}/details", handler.ItineraryDetailHandler(itineraryService, ctx))
+
+	mux.Handle("/v1/picture/1", handler.GetPicture(db, ctx))
+
+	mux.Handle("/v1/logout", auth.RequestLogout())
 
 	var handler http.Handler = mux
 	handler = middleware.AuthMiddleware(handler)

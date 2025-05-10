@@ -1,12 +1,11 @@
 package middleware
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
 
 	config "vincadrn.com/santuy/configs"
-	"vincadrn.com/santuy/internal/auth"
-	"vincadrn.com/santuy/internal/model"
+	"vincadrn.com/santuy/internal/session"
 )
 
 func AuthMiddleware(next http.Handler) http.Handler {
@@ -14,6 +13,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		publicURL := map[string]bool{
 			"/v1/auth/login":   true,
 			"/v1/auth/session": true,
+			"/v1/auth/logout":  true,
 			"/oauth2":          true,
 		}
 		if publicURL[r.URL.Path] {
@@ -21,26 +21,28 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		store := auth.Session()
-		session, err := store.Get(r, auth.API_SESSION_NAME)
+		sessionProvider := session.NewSessionProvider(w, r)
+
+		_, err := sessionProvider.GetUserEmail()
 		if err != nil {
-			model.ResponseWithErrorDefault(w, err, http.StatusInternalServerError)
+			slog.Error("Cannot retrieve email from session")
+			slog.Error(err.Error())
+			http.Error(w, "Invalid session", http.StatusBadRequest)
+
 			return
 		}
 
-		log.Println("In auth middleware. Session values:", session)
+		_, err = sessionProvider.GetUserName()
+		if err != nil {
+			slog.Error("Cannot retrieve user name from session")
+			slog.Error(err.Error())
+			http.Error(w, "Invalid session", http.StatusBadRequest)
 
-		if session.Values["email"] == nil {
-			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
-			return
-		}
-		userEmail := session.Values["email"].(string)
-		if userEmail != "" {
-			next.ServeHTTP(w, r)
 			return
 		}
 
-		model.ResponseWithErrorDefault(w, nil, http.StatusForbidden)
+		next.ServeHTTP(w, r)
+		return
 	})
 }
 

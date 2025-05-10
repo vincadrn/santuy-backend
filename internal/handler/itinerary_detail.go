@@ -4,18 +4,19 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
-	"strconv"
+	"strings"
 
 	"vincadrn.com/santuy/internal/response"
 	"vincadrn.com/santuy/internal/service"
 	"vincadrn.com/santuy/internal/session"
 )
 
-// func Itinerary(db *sql.DB, ctx context.Context) http.Handler {
-func ItineraryHandler(svc *service.ItineraryService, ctx context.Context) http.Handler {
+func ItineraryDetailHandler(svc *service.ItineraryService, ctx context.Context) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
-			listItineraries(svc, ctx).ServeHTTP(w, r)
+			listItineraryDetails(svc, ctx).ServeHTTP(w, r)
+		} else if r.Method == http.MethodPost {
+			return
 		} else {
 			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 			return
@@ -23,8 +24,16 @@ func ItineraryHandler(svc *service.ItineraryService, ctx context.Context) http.H
 	})
 }
 
-func listItineraries(svc *service.ItineraryService, ctx context.Context) http.Handler {
+func listItineraryDetails(svc *service.ItineraryService, ctx context.Context) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		itineraryId := r.PathValue("itineraryId")
+
+		// TODO: Add ID/path validation
+		if itineraryId == "" || strings.Contains(itineraryId, "/") {
+			http.Error(w, "", http.StatusBadRequest)
+			return
+		}
+
 		sessionProvider := session.NewSessionProvider(w, r)
 
 		email, err := sessionProvider.GetUserEmail()
@@ -44,25 +53,23 @@ func listItineraries(svc *service.ItineraryService, ctx context.Context) http.Ha
 
 			return
 		}
-		slog.Info("Attempting to list itineraries", "email", email, "groupId", groupRole.GroupId, "role", groupRole.Role)
+		slog.Info("Attempting to list itinerary details", "email", email, "groupId", groupRole.GroupId, "role", groupRole.Role)
 
-		// TODO: Make vacationId not hardcoded :(
-		vacationId := 1
-		itineraries, err := svc.ListItineraries(ctx, groupRole.GroupId, strconv.Itoa(vacationId))
+		itineraryDetails, err := svc.ListItineraryDetails(ctx, groupRole.GroupId, itineraryId)
 		if err != nil {
-			slog.Error("Cannot list itineraries", "groupId", groupRole.GroupId, "vacationId", vacationId)
+			slog.Error("Cannot list itinerary details", "groupId", groupRole.GroupId, "itineraryId", itineraryId)
 			slog.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 
 			return
 		}
 
-		var itinerariesPayload response.Itineraries
-		itinerariesPayload.Construct(itineraries)
+		var itineraryDetailsPayload response.ItineraryDetails
+		itineraryDetailsPayload.Construct(itineraryDetails)
 
-		response, err := itinerariesPayload.ToJSON()
+		response, err := itineraryDetailsPayload.ToJSON()
 		if err != nil {
-			slog.Error("Cannot marshal itineraries to JSON")
+			slog.Error("Cannot marshal itinerary details to JSON")
 			slog.Error(err.Error())
 			http.Error(w, "Error when serializing JSON", http.StatusInternalServerError)
 

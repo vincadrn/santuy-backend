@@ -1,38 +1,24 @@
 package handler
 
 import (
+	"context"
+	"encoding/json"
+	"log/slog"
 	"net/http"
-	"strings"
 
-	"vincadrn.com/santuy/internal/auth"
 	"vincadrn.com/santuy/internal/model"
+	"vincadrn.com/santuy/internal/request"
+	"vincadrn.com/santuy/internal/response"
+	"vincadrn.com/santuy/internal/service"
+	"vincadrn.com/santuy/internal/session"
 )
 
-func ListGroups() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ggrs := model.GroupGroupRoles{
-			model.GroupGroupRole{
-				Id:   "1",
-				Name: "group1",
-				Role: "admin",
-			},
-			model.GroupGroupRole{
-				Id:   "2",
-				Name: "group2",
-				Role: "member",
-			},
-		}
-
-		w.Write([]byte(ggrs.ToJSON()))
-	})
-}
-
-func GroupHandler() http.Handler {
+func GroupHandler(svc *service.AccountService, ctx context.Context) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
-			GetGroup().ServeHTTP(w, r)
+			listGroups(svc, ctx).ServeHTTP(w, r)
 		} else if r.Method == http.MethodPost {
-			SetGroup().ServeHTTP(w, r)
+			joinGroup(svc, ctx).ServeHTTP(w, r)
 		} else {
 			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 			return
@@ -40,38 +26,119 @@ func GroupHandler() http.Handler {
 	})
 }
 
-func GetGroup() http.Handler {
+func listGroups(svc *service.AccountService, ctx context.Context) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		groupId := r.PathValue("groupId")
+		sessionProvider := session.NewSessionProvider(w, r)
 
-		if groupId == "" || strings.Contains(groupId, "/") {
-			http.Error(w, "", http.StatusBadRequest)
+		email, err := sessionProvider.GetUserEmail()
+		if err != nil {
+			slog.Error("Cannot retrieve email from session")
+			slog.Error(err.Error())
+			http.Error(w, "Invalid session", http.StatusBadRequest)
+
 			return
 		}
 
-		// return a mock for now
-		group := model.Group{
-			Id:   groupId,
-			Name: "group123",
+		userName, err := sessionProvider.GetUserName()
+		if err != nil {
+			slog.Error("Cannot retrieve user name from session")
+			slog.Error(err.Error())
+			http.Error(w, "Invalid session", http.StatusBadRequest)
+
+			return
 		}
 
-		w.Write([]byte(group.ToJSON()))
+		user := model.User{
+			Name:  userName,
+			Email: email,
+		}
+
+		groups, err := svc.ListGroupsByUser(ctx, &user)
+		if err != nil {
+			slog.Error("Cannot list group by user")
+			slog.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+
+			return
+		}
+
+		var payload response.GroupRoles
+		payload.Construct(groups)
+
+		response, err := payload.ToJSON()
+		if err != nil {
+			slog.Error("Cannot marshal group roles response")
+			slog.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+
+			return
+		}
+
+		w.Write(response)
 	})
 }
 
-func SetGroup() http.Handler {
+// Only if the group already exists.
+// TODO: Create a new function to handle new group creation
+func joinGroup(svc *service.AccountService, ctx context.Context) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		groupId := r.PathValue("groupId")
+		var request request.JoinGroupRequest
+		defer r.Body.Close()
+		err := json.NewDecoder(r.Body).Decode(&request)
 
-		if groupId == "" || strings.Contains(groupId, "/") {
-			http.Error(w, "", http.StatusBadRequest)
+		if err != nil {
+			slog.Error("Cannot read request body when setting group")
+			slog.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+
 			return
 		}
 
-		// TODO: Add database check if this user is eligible
-		// for the requested group and role
-		auth.SetSessionValue("group_id", "1", w, r)
-		auth.SetSessionValue("role", "Admin", w, r)
+		sessionProvider := session.NewSessionProvider(w, r)
+
+		email, err := sessionProvider.GetUserEmail()
+		if err != nil {
+			slog.Error("Cannot retrieve email from session")
+			slog.Error(err.Error())
+			http.Error(w, "Invalid session", http.StatusBadRequest)
+
+			return
+		}
+
+		user, err := svc.GetUserDetails(ctx, email)
+		if err != nil {
+			slog.Error("Cannot get user from db")
+			slog.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+
+			return
+		}
+
+		requestedGroup := model.Group{
+			Id: request.GroupId,
+		}
+		err = svc.AssignUserToGroup(ctx, user, &requestedGroup)
+		if err != nil {
+			slog.Error("Cannot assign user to group", "user", email, "group", requestedGroup.Name)
+			slog.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+
+			return
+		}
+
+		// Write session
+		groupRole := session.GroupRole{
+			GroupId: requestedGroup.Id,
+			Role:    "member",
+		}
+		err = sessionProvider.SetCurrentGroupRole(groupRole)
+		if err != nil {
+			slog.Error("Cannot set group ID and role to session", "user", email, "group", requestedGroup.Name)
+			slog.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+
+			return
+		}
 
 		w.Write([]byte("OK"))
 	})
