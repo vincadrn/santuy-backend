@@ -56,7 +56,7 @@ func main() {
 	mux.Handle("/v1/itineraries", handler.ItineraryHandler(itineraryService, ctx))
 	mux.Handle("/v1/itineraries/{itineraryId}/details", handler.ItineraryDetailHandler(itineraryService, ctx))
 
-	mux.Handle("/v1/picture/1", handler.GetPicture(db, ctx))
+	// mux.Handle("/v1/picture/1", handler.GetPicture(db, ctx))
 
 	mux.Handle("/v1/logout", auth.RequestLogout())
 
