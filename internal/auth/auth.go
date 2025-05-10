@@ -2,7 +2,6 @@ package auth
 
 import (
 	"fmt"
-	"net/url"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -44,5 +43,4 @@ func init() {
 
 type OAuthRedirectURI struct {
 	RedirectURI string `json:"redirect_uri"`
-	parsedURI   url.URL
 }

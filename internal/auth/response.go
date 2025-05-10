@@ -81,7 +81,12 @@ func RequestAuth(svc *service.AccountService, ctx context.Context) http.Handler 
 			return
 		}
 
-		w.Write(buf.Bytes())
+		_, err = w.Write(buf.Bytes())
+		if err != nil {
+			slog.Error("Cannot write response", "response", buf.Bytes())
+			slog.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		}
 	})
 }
 
@@ -152,6 +157,13 @@ func RequestSession(svc *service.AccountService, ctx context.Context) http.Handl
 		// Google OAuth email retrieval
 		ctx := context.Background()
 		peopleService, err := people.NewService(ctx, option.WithTokenSource(OauthConfig.TokenSource(ctx, token)))
+		if err != nil {
+			slog.Error("Cannot create People API service")
+			slog.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+
+			return
+		}
 
 		userInfo, err := peopleService.People.Get("people/me").PersonFields("names,emailAddresses").Do()
 		if err != nil {
@@ -185,13 +197,42 @@ func RequestSession(svc *service.AccountService, ctx context.Context) http.Handl
 			Name:  userName,
 			Email: emailAddress,
 		}
-		svc.SaveUser(ctx, &user)
+		err = svc.SaveUser(ctx, &user)
+		if err != nil {
+			slog.Error("Cannot save user", "user", user)
+			slog.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+
+			return
+		}
 
 		// Clear oauth session
-		sessionProvider.SetOAuth2State("")
-		sessionProvider.SetOAuth2Verifier("")
+		err = sessionProvider.SetOAuth2State("")
+		if err != nil {
+			slog.Error("Cannot clear oauth2 state")
+			slog.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 
-		w.Write([]byte("OK"))
+			return
+		}
+
+		err = sessionProvider.SetOAuth2Verifier("")
+		if err != nil {
+			slog.Error("Cannot clear oauth2 verifier")
+			slog.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+
+			return
+		}
+
+		_, err = w.Write([]byte("OK"))
+		if err != nil {
+			slog.Error("Cannot write response")
+			slog.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+
+			return
+		}
 	})
 }
 
@@ -204,12 +245,58 @@ func RequestLogout() http.Handler {
 
 		sessionProvider := session.NewSessionProvider(w, r)
 
-		sessionProvider.SetUserEmail("")
-		sessionProvider.SetUserName("")
-		sessionProvider.SetCurrentGroupRole(session.GroupRole{})
-		sessionProvider.SetOAuth2State("")
-		sessionProvider.SetOAuth2Verifier("")
+		err := sessionProvider.SetUserEmail("")
+		if err != nil {
+			slog.Error("Cannot clear user email")
+			slog.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 
-		w.Write([]byte("OK"))
+			return
+		}
+
+		err = sessionProvider.SetUserName("")
+		if err != nil {
+			slog.Error("Cannot clear user name")
+			slog.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+
+			return
+		}
+
+		err = sessionProvider.SetCurrentGroupRole(session.GroupRole{})
+		if err != nil {
+			slog.Error("Cannot clear current group role")
+			slog.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+
+			return
+		}
+
+		err = sessionProvider.SetOAuth2Verifier("")
+		if err != nil {
+			slog.Error("Cannot clear oauth verifier")
+			slog.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+
+			return
+		}
+
+		err = sessionProvider.SetOAuth2State("")
+		if err != nil {
+			slog.Error("Cannot clear oauth state")
+			slog.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+
+			return
+		}
+
+		_, err = w.Write([]byte("OK"))
+		if err != nil {
+			slog.Error("Cannot write response")
+			slog.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+
+			return
+		}
 	})
 }

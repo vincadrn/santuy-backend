@@ -42,7 +42,6 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		}
 
 		next.ServeHTTP(w, r)
-		return
 	})
 }
 
@@ -72,7 +71,12 @@ func CORSMiddleware(next http.Handler) http.Handler {
 		}
 
 		if r.Method == "OPTIONS" {
-			w.Write([]byte("allowed"))
+			_, err := w.Write([]byte("allowed"))
+			if err != nil {
+				slog.Error("Cannot allow preflight CORS (received OPTIONS method)")
+				slog.Error(err.Error())
+			}
+
 			return
 		}
 

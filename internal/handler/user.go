@@ -64,6 +64,11 @@ func getCurrentUser() http.Handler {
 		slog.Info("User contains this:", "username", userName, "email", email)
 		slog.Info("Sending this response:", "response", response)
 
-		w.Write(response)
+		_, err = w.Write(response)
+		if err != nil {
+			slog.Error("Cannot write response", "response", response)
+			slog.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		}
 	})
 }

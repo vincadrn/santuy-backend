@@ -74,7 +74,14 @@ func listGroups(svc *service.AccountService, ctx context.Context) http.Handler {
 			return
 		}
 
-		w.Write(response)
+		_, err = w.Write(response)
+		if err != nil {
+			slog.Error("Cannot write response", "response", response)
+			slog.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+
+			return
+		}
 	})
 }
 
@@ -140,6 +147,13 @@ func joinGroup(svc *service.AccountService, ctx context.Context) http.Handler {
 			return
 		}
 
-		w.Write([]byte("OK"))
+		_, err = w.Write([]byte("OK"))
+		if err != nil {
+			slog.Error("Cannot write response")
+			slog.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+
+			return
+		}
 	})
 }
