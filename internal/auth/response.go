@@ -245,45 +245,9 @@ func RequestLogout() http.Handler {
 
 		sessionProvider := session.NewSessionProvider(w, r)
 
-		err := sessionProvider.SetUserEmail("")
+		err := sessionProvider.DeleteSession()
 		if err != nil {
-			slog.Error("Cannot clear user email")
-			slog.Error(err.Error())
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-
-			return
-		}
-
-		err = sessionProvider.SetUserName("")
-		if err != nil {
-			slog.Error("Cannot clear user name")
-			slog.Error(err.Error())
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-
-			return
-		}
-
-		err = sessionProvider.SetCurrentGroupRole(session.GroupRole{})
-		if err != nil {
-			slog.Error("Cannot clear current group role")
-			slog.Error(err.Error())
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-
-			return
-		}
-
-		err = sessionProvider.SetOAuth2Verifier("")
-		if err != nil {
-			slog.Error("Cannot clear oauth verifier")
-			slog.Error(err.Error())
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-
-			return
-		}
-
-		err = sessionProvider.SetOAuth2State("")
-		if err != nil {
-			slog.Error("Cannot clear oauth state")
+			slog.Error("Error when deleting session")
 			slog.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 

@@ -21,7 +21,7 @@ type SessionProvider interface {
 	SetCurrentGroupRole(groupRole GroupRole) (string, error)
 	SetOAuth2State(state string) error
 	SetOAuth2Verifier(verifier string) error
-	ClearSession() error
+	DeleteSession() error
 }
 
 type GroupRole struct {
@@ -233,7 +233,7 @@ func (sp *sessionProvider) SetOAuth2State(oAuth2State string) error {
 	return session.Save(sp.r, sp.w)
 }
 
-func (sp *sessionProvider) ClearSession() error {
+func (sp *sessionProvider) DeleteSession() error {
 	session, err := sp.store.Get(sp.r, sp.name)
 	if err != nil {
 		slog.Error("Cannot get session")
@@ -242,11 +242,6 @@ func (sp *sessionProvider) ClearSession() error {
 		return err
 	}
 
-	session.Values["name"] = nil
-	session.Values["email"] = nil
-	session.Values["group_role"] = nil
-	session.Values["oauth2_verifier"] = nil
-	session.Values["oauth2_state"] = nil
-
+	session.Options.MaxAge = -1
 	return session.Save(sp.r, sp.w)
 }
