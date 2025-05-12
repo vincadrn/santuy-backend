@@ -27,8 +27,6 @@ func init() {
 		obtainer = LocalOAuthCredentials{}
 	}
 
-	redirectHost := config.GetAllowedClientHost()
-
 	OauthConfig = oauth2.Config{
 		ClientID:     obtainer.GetOAuthClientID(),
 		ClientSecret: obtainer.GetOAuthClientSecret(),
@@ -36,9 +34,12 @@ func init() {
 			"https://www.googleapis.com/auth/userinfo.email",
 			"https://www.googleapis.com/auth/userinfo.profile",
 		},
-		Endpoint:    google.Endpoint,
-		RedirectURL: fmt.Sprintf("https://%s/oauth2", redirectHost),
+		Endpoint: google.Endpoint,
 	}
+}
+
+func SetOAuthRedirectURL(host string) {
+	OauthConfig.RedirectURL = fmt.Sprintf("https://%s/oauth2", host)
 }
 
 type OAuthRedirectURI struct {

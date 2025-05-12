@@ -117,13 +117,17 @@ func RequestSession(svc *service.AccountService, ctx context.Context) http.Handl
 		}
 		log.Println(parsedURI)
 
+		// Check whether hostname is whitelisted
 		hostName := parsedURI.Host
 		code := parsedURI.Query()["code"][0]
 		state := parsedURI.Query()["state"][0]
-		if hostName != config.GetAllowedClientHost() {
-			http.Error(w, "invalid hostname", http.StatusForbidden)
+		if !config.CheckHostnameWhitelist(hostName) {
+			http.Error(w, "Invalid hostname", http.StatusForbidden)
 			return
 		}
+
+		// Set redirect URL
+		SetOAuthRedirectURL(hostName)
 
 		savedState, err := sessionProvider.GetOAuth2State()
 		if state != savedState {

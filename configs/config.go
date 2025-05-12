@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -40,8 +41,16 @@ func init() {
 	}
 }
 
-func GetAllowedClientHost() string {
-	return os.Getenv("CLIENT_HOST")
+func CheckHostnameWhitelist(hostName string) bool {
+	allowedHosts := strings.Split(os.Getenv("CLIENT_HOSTS"), ",")
+
+	for _, allowedHost := range allowedHosts {
+		if hostName == allowedHost {
+			return true
+		}
+	}
+
+	return false
 }
 
 func Configuration() *Config {
