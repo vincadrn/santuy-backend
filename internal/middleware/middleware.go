@@ -13,7 +13,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		publicURL := map[string]bool{
 			"/v1/auth/login":   true,
 			"/v1/auth/session": true,
-			"/v1/auth/logout":  true,
+			"/v1/logout":       true,
 			"/oauth2":          true,
 		}
 		if publicURL[r.URL.Path] {

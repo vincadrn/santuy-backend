@@ -117,13 +117,17 @@ func RequestSession(svc *service.AccountService, ctx context.Context) http.Handl
 		}
 		log.Println(parsedURI)
 
+		// Check whether hostname is whitelisted
 		hostName := parsedURI.Host
 		code := parsedURI.Query()["code"][0]
 		state := parsedURI.Query()["state"][0]
-		if hostName != config.GetAllowedClientHost() {
-			http.Error(w, "invalid hostname", http.StatusForbidden)
+		if !config.CheckHostnameWhitelist(hostName) {
+			http.Error(w, "Invalid hostname", http.StatusForbidden)
 			return
 		}
+
+		// Set redirect URL
+		SetOAuthRedirectURL(hostName)
 
 		savedState, err := sessionProvider.GetOAuth2State()
 		if state != savedState {
@@ -245,45 +249,9 @@ func RequestLogout() http.Handler {
 
 		sessionProvider := session.NewSessionProvider(w, r)
 
-		err := sessionProvider.SetUserEmail("")
+		err := sessionProvider.DeleteSession()
 		if err != nil {
-			slog.Error("Cannot clear user email")
-			slog.Error(err.Error())
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-
-			return
-		}
-
-		err = sessionProvider.SetUserName("")
-		if err != nil {
-			slog.Error("Cannot clear user name")
-			slog.Error(err.Error())
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-
-			return
-		}
-
-		err = sessionProvider.SetCurrentGroupRole(session.GroupRole{})
-		if err != nil {
-			slog.Error("Cannot clear current group role")
-			slog.Error(err.Error())
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-
-			return
-		}
-
-		err = sessionProvider.SetOAuth2Verifier("")
-		if err != nil {
-			slog.Error("Cannot clear oauth verifier")
-			slog.Error(err.Error())
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-
-			return
-		}
-
-		err = sessionProvider.SetOAuth2State("")
-		if err != nil {
-			slog.Error("Cannot clear oauth state")
+			slog.Error("Error when deleting session")
 			slog.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 
