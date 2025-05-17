@@ -38,7 +38,7 @@ func RequestAuth(svc *service.AccountService, ctx context.Context) http.Handler 
 
 		sessionProvider := session.NewSessionProvider(w, r)
 
-		OauthConfig.RedirectURL = fmt.Sprintf("%s/oauth2", r.Header.Get("Origin"))
+		SetOAuthRedirectURL(fmt.Sprintf("%s/oauth2", r.Header.Get("Origin")))
 		verifier := oauth2.GenerateVerifier()
 		randomBytes := make([]byte, 8)
 		_, err := rand.Read(randomBytes)
@@ -125,9 +125,6 @@ func RequestSession(svc *service.AccountService, ctx context.Context) http.Handl
 			http.Error(w, "Invalid hostname", http.StatusForbidden)
 			return
 		}
-
-		// Set redirect URL
-		SetOAuthRedirectURL(hostName)
 
 		savedState, err := sessionProvider.GetOAuth2State()
 		if state != savedState {
