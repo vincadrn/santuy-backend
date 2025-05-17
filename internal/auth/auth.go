@@ -1,8 +1,6 @@
 package auth
 
 import (
-	"fmt"
-
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 
@@ -38,8 +36,8 @@ func init() {
 	}
 }
 
-func SetOAuthRedirectURL(host string) {
-	OauthConfig.RedirectURL = fmt.Sprintf("https://%s/oauth2", host)
+func SetOAuthRedirectURL(uri string) {
+	OauthConfig.RedirectURL = uri
 }
 
 type OAuthRedirectURI struct {
