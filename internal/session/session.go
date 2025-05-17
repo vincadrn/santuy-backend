@@ -29,6 +29,13 @@ type GroupRole struct {
 	Role    string
 }
 
+type sessionProvider struct {
+	store *sessions.CookieStore
+	name  string
+	r     *http.Request
+	w     http.ResponseWriter
+}
+
 const SESSION_NAME string = "santuysrv"
 
 var cookieStore *sessions.CookieStore
@@ -38,20 +45,18 @@ func init() {
 	gob.Register(&GroupRole{})
 
 	// Cookie setup
+	sameSitePolicy := http.SameSiteLaxMode
+	if os.Getenv("ENVIRONMENT") != "PRODUCTION" {
+		sameSitePolicy = http.SameSiteNoneMode
+	}
 	cookieStore = sessions.NewCookieStore([]byte(os.Getenv("SESSION_KEY")))
 	cookieStore.Options = &sessions.Options{
 		Path:     "/",
 		MaxAge:   1 * 24 * 60 * 60,
 		HttpOnly: true,
 		Secure:   true,
+		SameSite: sameSitePolicy,
 	}
-}
-
-type sessionProvider struct {
-	store *sessions.CookieStore
-	name  string
-	r     *http.Request
-	w     http.ResponseWriter
 }
 
 func NewSessionProvider(w http.ResponseWriter, r *http.Request) *sessionProvider {
