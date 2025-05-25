@@ -30,7 +30,8 @@ func (r *itineraryRepository) ListItineraries(ctx context.Context, groupId strin
 		JOIN groupvacation gv
 			ON i.id_vacation = gv.id_vacation
 		WHERE gv.id_group = $1
-		AND i.id_vacation = $2;
+		AND i.id_vacation = $2
+		ORDER BY i.date ASC
 		`,
 		groupId, vacationId,
 	)
@@ -72,7 +73,8 @@ func (r *itineraryRepository) ListItineraryDetails(ctx context.Context, groupId 
 		JOIN groupvacation gv
 			ON i.id_vacation = gv.id_vacation
 		WHERE i.id_itinerary = $2
-		AND gv.id_group = $1;
+		AND gv.id_group = $1
+		ORDER BY li.start_time ASC
 		`,
 		groupId, itineraryId,
 	)
