@@ -196,6 +196,13 @@ func CreateUploadObjectURI(pictSvc *service.PictureService, itinerarySvc *servic
 		var request request.PictureRequest
 		defer r.Body.Close()
 		err := json.NewDecoder(r.Body).Decode(&request)
+		if err != nil {
+			slog.Error("Cannot decode picture request")
+			slog.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+
+			return
+		}
 
 		// Check if format is not empty
 		if request.Format == "" {
