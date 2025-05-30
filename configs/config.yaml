@@ -6,3 +6,4 @@ cors:
   allowedOrigins:
     - 'http://localhost:5173'
     - 'https://tvlknika-development.vincadrn.com'
+    - 'https://travelonika.vincadrn.com'

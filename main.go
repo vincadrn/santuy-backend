@@ -45,6 +45,8 @@ func main() {
 	accountService := service.NewAccountService(accountRepo)
 	itineraryRepo := repository.NewItineraryRepository(db)
 	itineraryService := service.NewItineraryService(itineraryRepo)
+	pictureRepo := repository.NewPictureRepository(db)
+	pictureService := service.NewPictureService(pictureRepo, itineraryRepo)
 
 	ctx := context.Background()
 
@@ -62,7 +64,9 @@ func main() {
 	mux.Handle("/v1/itineraries", handler.ItineraryHandler(itineraryService, ctx))
 	mux.Handle("/v1/itineraries/{itineraryId}/details", handler.ItineraryDetailHandler(itineraryService, ctx))
 
-	// mux.Handle("/v1/picture/1", handler.GetPicture(db, ctx))
+	mux.Handle("/v1/pictures", handler.ListAllPictures(pictureService, itineraryService, ctx))
+	mux.Handle("/v1/itineraries/{itineraryId}/pictures", handler.ListPicturesByItinerary(pictureService, itineraryService, ctx))
+	mux.Handle("/v1/itineraries/{itineraryId}/picture", handler.CreateUploadObjectURI(pictureService, itineraryService, ctx))
 
 	mux.Handle("/v1/logout", auth.RequestLogout())
 
