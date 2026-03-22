@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/joho/godotenv"
 	"gopkg.in/yaml.v3"
 )
 
@@ -26,10 +27,12 @@ type Config struct {
 	}
 }
 
-// Fill sharedConfig with config obtained from the file.
-// This init will run across files and packages
-// that use config package.
 func init() {
+	loadFromEnvFile()
+
+	// Fill sharedConfig with config obtained from the file.
+	// This init will run across files and packages
+	// that use config package.
 	if sharedConfig != nil {
 		return
 	}
@@ -107,4 +110,32 @@ func validateConfigPath(path string) error {
 		return fmt.Errorf("'%s' is a directory, not a normal file", path)
 	}
 	return nil
+}
+
+func loadFromEnvFile() {
+	// Populate from env for local development
+	// else, inject env vars into the container/machine depending on the IaaS
+	if environment := strings.ToLower(os.Getenv("ENVIRONMENT")); environment != "local" {
+		return
+	}
+
+	switch profile := strings.ToLower(os.Getenv("PROFILE")); profile {
+	case "local":
+		err := godotenv.Load(".env.local")
+		if err != nil {
+			log.Fatalf("error: unable to load .env.local: %s", err)
+		}
+	case "staging":
+		err := godotenv.Load(".env.staging")
+		if err != nil {
+			log.Fatalf("error: unable to load .env.staging: %s", err)
+		}
+	case "production":
+		err := godotenv.Load(".env")
+		if err != nil {
+			log.Fatalf("error: unable to load .env: %s", err)
+		}
+	default:
+		log.Fatalf("error: unrecognized profile, unable to load correct .env file")
+	}
 }
