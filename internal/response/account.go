@@ -30,7 +30,7 @@ func (res GroupRole) ToJSON() ([]byte, error) {
 
 func (res *GroupRole) Construct(groupRole *model.GroupRole) {
 	res.GroupName = groupRole.Name
-	res.Role = groupRole.Role
+	res.Role = groupRole.Role.String()
 }
 
 func (ress GroupRoles) ToJSON() ([]byte, error) {

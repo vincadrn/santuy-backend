@@ -1,5 +1,22 @@
 package model
 
+type RoleType int
+
+const (
+	Admin RoleType = iota
+	Member
+)
+
+var roleType = map[RoleType]string{
+	Admin:  "admin",
+	Member: "member",
+}
+
+// RoleType implements Stringer
+func (rt RoleType) String() string {
+	return roleType[rt]
+}
+
 // user_table
 type User struct {
 	Id    string // id_user
@@ -15,7 +32,7 @@ type Group struct {
 
 type GroupRole struct {
 	Group
-	Role string
+	Role RoleType
 }
 
 // assoc table: groupuser: id_user, id_group, role
