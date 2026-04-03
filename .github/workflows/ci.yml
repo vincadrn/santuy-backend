@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main", "dev" ]
+    paths-ignore:
+      - .github/workflows/**
+
+  pull_request:
+    branches: [ "dev" ]
+    paths-ignore:
+      - .github/workflows/**
+
+jobs:
+  init:
+    name: Init
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v6
+
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@47
+        with:
+          files_yaml: |
+            code:
+              - '*.go'
+            db_migration:
+              - migration/**
+    outputs:
+      code-changes-exist: ${{ steps.changed-files.outputs.code_all_changed_and_modified_files_count > 0 }}
+      db-migration-changes-exist: ${{ steps.changed-files.outputs.db_migration_all_changed_and_modified_files_count > 0 }}
+
+  code_check:
+    name: Code check
+    needs: [init]
+    if: ${{ needs.init.outputs.code-changes-exist }}
+    uses: vincadrn/santuy-backend/.github/workflows/code_check.yml@dev
+
+  db_migration_check:
+    name: Database migration check
+    needs: [init]
+    if: ${{ needs.init.outputs.db-migration-changes-exist }}
+    uses: vincadrn/santuy-backend/.github/workflows/db_migration_check.yml@dev
+    with:
+      directory: 'migration'

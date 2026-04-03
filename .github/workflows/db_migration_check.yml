@@ -1,0 +1,23 @@
+name: DB Migration Check
+
+on:
+  workflow_call:
+    inputs:
+      directory:
+        required: true
+        type: string
+
+jobs:
+  build:
+    name: Validate migration files
+    runs-on: ubuntu-latest
+    steps:
+      # See https://pressly.github.io/goose/installation
+      - name: Install goose
+        run: |
+          curl -fsSL \
+            https://raw.githubusercontent.com/pressly/goose/master/install.sh |\
+            sh
+
+      - name: Run goose validate
+        run: goose validate -dir migration -v
