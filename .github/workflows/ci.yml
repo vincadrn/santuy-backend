@@ -35,13 +35,13 @@ jobs:
   code_check:
     name: Code check
     needs: [init]
-    if: ${{ needs.init.outputs.code-changes-exist }}
+    if: needs.init.outputs.code-changes-exist == 'true'
     uses: vincadrn/santuy-backend/.github/workflows/code_check.yml@dev
 
   db_migration_check:
     name: Database migration check
     needs: [init]
-    if: ${{ needs.init.outputs.db-migration-changes-exist }}
+    if: needs.init.outputs.db-migration-changes-exist == 'true'
     uses: vincadrn/santuy-backend/.github/workflows/db_migration_check.yml@dev
     with:
       directory: 'migration'
