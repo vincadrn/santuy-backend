@@ -27,7 +27,7 @@ func NewAccountRepository(db *sql.DB) AccountRepository {
 func (r *accountRepository) GetUserByEmail(ctx context.Context, email string) (*model.User, error) {
 	rows := r.db.QueryRowContext(
 		ctx,
-		`SELECT id_user, nama, email FROM user_table WHERE email = $1;`,
+		`SELECT id, name, email FROM account.user_account WHERE email = $1;`,
 		email,
 	)
 
@@ -48,7 +48,7 @@ func (r *accountRepository) GetUserByEmail(ctx context.Context, email string) (*
 func (r *accountRepository) SaveUser(ctx context.Context, user *model.User) error {
 	_, err := r.db.ExecContext(
 		ctx,
-		`INSERT INTO user_table (nama, email) VALUES ($1, $2) ON CONFLICT (email) DO UPDATE SET email = $2;`,
+		`INSERT INTO account.user_account (name, email) VALUES ($1, $2) ON CONFLICT (email) DO NOTHING`,
 		user.Name, user.Email,
 	)
 
@@ -82,13 +82,13 @@ func (r *accountRepository) ListGroupsByUser(ctx context.Context, user *model.Us
 	groups := &[]model.GroupRole{}
 	rows, err := tx.QueryContext(
 		ctx,
-		`SELECT gt.id_group, gt.nama, gu.role
-		FROM group_table gt
-		JOIN groupuser gu
-			ON gu.id_group = gt.id_group
-		JOIN user_table ut
-			ON gu.id_user = ut.id_user
-		WHERE ut.email = $1
+		`SELECT vg.id, vg.name, uvg.role
+		FROM travel.vacation_group vg
+		JOIN travel.user_vacation_group uvg
+			ON uvg.group_id = vg.id
+		JOIN account.user_account ua
+			ON uvg.user_id = ua.id
+		WHERE ua.email = $1
 		`,
 		user.Email,
 	)
@@ -161,8 +161,8 @@ func (r *accountRepository) SetUserToGroup(ctx context.Context, user *model.User
 
 	res, err := r.db.ExecContext(
 		ctx,
-		`INSERT INTO groupuser
-		(id_user, id_group, role)
+		`INSERT INTO travel.user_vacation_group
+		(user_id, group_id, role)
 		VALUES
 		($1, $2, $3)
 		ON CONFLICT DO NOTHING

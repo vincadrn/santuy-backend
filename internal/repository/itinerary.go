@@ -26,12 +26,12 @@ func (r *itineraryRepository) ListItineraries(ctx context.Context, groupId strin
 	rows, err := r.db.QueryContext(
 		ctx,
 		`
-		SELECT i.id_itinerary, i.date
-		FROM itinerary i
-		JOIN groupvacation gv
-			ON i.id_vacation = gv.id_vacation
-		WHERE gv.id_group = $1
-		AND i.id_vacation = $2
+		SELECT i.id, i.date
+		FROM travel.itinerary i
+		JOIN travel.vacation_vacation_group vvg
+			ON i.vacation_id = vvg.vacation_id
+		WHERE vvg.group_id = $1
+		AND i.vacation_id = $2
 		ORDER BY i.date ASC
 		`,
 		groupId, vacationId,
@@ -72,15 +72,15 @@ func (r *itineraryRepository) ListItineraryDetails(ctx context.Context, groupId 
 	rows, err := r.db.QueryContext(
 		ctx,
 		`
-		SELECT li.id_activities, li.id_itinerary, li.start_time, li.end_time, li.activities
-		FROM list_itinerary li
-		JOIN itinerary i
-			ON li.id_itinerary = i.id_itinerary
-		JOIN groupvacation gv
-			ON i.id_vacation = gv.id_vacation
-		WHERE i.id_itinerary = $2
-		AND gv.id_group = $1
-		ORDER BY li.start_time ASC
+		SELECT il.id, il.itinerary_id, il.start_time, il.end_time, il.activity
+		FROM travel.itinerary_list il
+		JOIN travel.itinerary i
+			ON il.itinerary_id = i.id
+		JOIN travel.vacation_vacation_group vvg
+			ON i.vacation_id = vvg.vacation_id
+		WHERE i.id = $2
+		AND vvg.group_id = $1
+		ORDER BY il.start_time ASC
 		`,
 		groupId, itineraryId,
 	)

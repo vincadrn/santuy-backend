@@ -25,8 +25,8 @@ go.work.sum
 .env
 .env.*
 
-# liquibase
-liquibase
+# db
+init.sql
 
 # exec
 santuy
