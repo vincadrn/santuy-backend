@@ -31,16 +31,13 @@ jobs:
           GOOSE_MIGRATION_DIR: ${{ secrets.GOOSE_MIGRATION_DIR }}
 
         run: |
-          {
-            echo 'GOOSE_MIGRATION_VERSION<<EOF'
-            goose version 2>&1
-            echo EOF
-          } >> "$GITHUB_OUTPUT"
-          {
-            echo 'GOOSE_MIGRATION_STATUS<<EOF'
-            goose status 2>&1
-            echo EOF
-          } >> "$GITHUB_OUTPUT"
+          echo 'GOOSE_MIGRATION_VERSION<<EOF' >> $GITHUB_OUTPUT
+          goose version 2>&1 >> $GITHUB_OUTPUT
+          echo 'EOF' >> GITHUB_OUTPUT
+
+          echo 'GOOSE_MIGRATION_STATUS<<EOF' >> $GITHUB_OUTPUT
+          goose status 2>&1 >> $GITHUB_OUTPUT
+          echo 'EOF' >> GITHUB_OUTPUT
 
       - name: Find similar comment in PR
         id: find_comment
