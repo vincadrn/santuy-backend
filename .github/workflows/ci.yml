@@ -1,11 +1,6 @@
 name: CI
 
 on:
-  push:
-    branches: [ "main", "dev" ]
-    paths-ignore:
-      - .github/workflows/**
-
   pull_request:
     branches: [ "dev" ]
     paths-ignore:
@@ -45,4 +40,8 @@ jobs:
     if: needs.init.outputs.db-migration-changes-exist == 'true'
     uses: vincadrn/santuy-backend/.github/workflows/db_migration_check.yml@dev
     with:
-      directory: 'migration'
+      environment: dev
+      directory: migration
+    secrets:
+      GOOSE_DRIVER: ${{ secrets.GOOSE_DRIVER }}
+      GOOSE_DBSTRING: ${{ secrets.GOOSE_DBSTRING }}
