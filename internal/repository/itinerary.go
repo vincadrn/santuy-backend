@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"log"
 	"log/slog"
 
 	"vincadrn.com/santuy/internal/model"
@@ -43,7 +44,12 @@ func (r *itineraryRepository) ListItineraries(ctx context.Context, groupId strin
 		return nil, err
 	}
 
-	defer rows.Close()
+	defer func() {
+		err = rows.Close()
+		if err != nil {
+			log.Fatalf("cannot close sql rows iteration: %v", err)
+		}
+	}()
 
 	itineraries := &model.Itineraries{}
 
@@ -86,7 +92,12 @@ func (r *itineraryRepository) ListItineraryDetails(ctx context.Context, groupId 
 		return nil, err
 	}
 
-	defer rows.Close()
+	defer func() {
+		err = rows.Close()
+		if err != nil {
+			log.Fatalf("cannot close sql rows iteration: %v", err)
+		}
+	}()
 
 	itineraryDetails := &model.ItineraryDetails{}
 	for rows.Next() {

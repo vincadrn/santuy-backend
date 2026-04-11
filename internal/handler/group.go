@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"log/slog"
 	"net/http"
 
@@ -15,11 +16,14 @@ import (
 
 func GroupHandler(svc *service.AccountService, ctx context.Context) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodGet {
+		switch r.Method {
+		case http.MethodGet:
 			listGroups(svc, ctx).ServeHTTP(w, r)
-		} else if r.Method == http.MethodPost {
+
+		case http.MethodPost:
 			joinGroup(svc, ctx).ServeHTTP(w, r)
-		} else {
+
+		default:
 			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 			return
 		}
@@ -90,7 +94,12 @@ func listGroups(svc *service.AccountService, ctx context.Context) http.Handler {
 func joinGroup(svc *service.AccountService, ctx context.Context) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var request request.JoinGroupRequest
-		defer r.Body.Close()
+		defer func() {
+			err := r.Body.Close()
+			if err != nil {
+				log.Fatalf("cannot close body in join group: %v", err)
+			}
+		}()
 		err := json.NewDecoder(r.Body).Decode(&request)
 
 		if err != nil {

@@ -26,6 +26,7 @@ jobs:
           files_yaml: |
             code:
               - '*.go'
+              - '**/*.go'
             db_migration:
               - migration/**
     outputs:
