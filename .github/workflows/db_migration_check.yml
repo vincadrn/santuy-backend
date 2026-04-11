@@ -31,8 +31,16 @@ jobs:
       - name: Check current goose migration status
         id: check_migration
         run: |
-          echo "GOOSE_MIGRATION_VERSION=$(goose version 2>&1)" >> $GITHUB_OUTPUT
-          echo "GOOSE_MIGRATION_STATUS=$(goose status 2>&1)" >> $GITHUB_OUTPUT
+          {
+            echo 'GOOSE_MIGRATION_VERSION<<EOF'
+            goose version 2>&1
+            echo EOF
+          } >> "$GITHUB_ENV"
+          {
+            echo 'GOOSE_MIGRATION_STATUS<<EOF'
+            goose status 2>&1
+            echo EOF
+          } >> "$GITHUB_ENV"
 
       - name: Find similar comment in PR
         id: find_comment
