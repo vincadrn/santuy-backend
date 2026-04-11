@@ -12,11 +12,6 @@ jobs:
     name: Validate migration files
     runs-on: ubuntu-latest
     environment: dev
-    env:
-      GOOSE_DRIVER: ${{ secrets.GOOSE_DRIVER }}
-      GOOSE_DBSTRING: ${{ secrets.GOOSE_DBSTRING }}
-      GOOSE_MIGRATION_DIR: ${{ secrets.GOOSE_MIGRATION_DIR }}
-
     steps:
       - name: Checkout branch
         uses: actions/checkout@v6
@@ -30,17 +25,22 @@ jobs:
 
       - name: Check current goose migration status
         id: check_migration
+        env:
+          GOOSE_DRIVER: ${{ secrets.GOOSE_DRIVER }}
+          GOOSE_DBSTRING: ${{ secrets.GOOSE_DBSTRING }}
+          GOOSE_MIGRATION_DIR: ${{ secrets.GOOSE_MIGRATION_DIR }}
+
         run: |
           {
             echo 'GOOSE_MIGRATION_VERSION<<EOF'
             goose version 2>&1
             echo EOF
-          } >> "$GITHUB_ENV"
+          } >> "$GITHUB_OUTPUT"
           {
             echo 'GOOSE_MIGRATION_STATUS<<EOF'
             goose status 2>&1
             echo EOF
-          } >> "$GITHUB_ENV"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Find similar comment in PR
         id: find_comment
