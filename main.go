@@ -34,7 +34,12 @@ func main() {
 		slog.Error(err.Error())
 	}
 
-	defer db.Close()
+	defer func() {
+		err = db.Close()
+		if err != nil {
+			log.Fatalf("cannot close db connection: %v", err)
+		}
+	}()
 
 	if err != nil {
 		log.Fatal("Cannot connect to database.")

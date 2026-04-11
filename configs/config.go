@@ -73,7 +73,12 @@ func getConfig() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() {
+		err = file.Close()
+		if err != nil {
+			log.Fatalf("cannot close config file: %v", err)
+		}
+	}()
 
 	d := yaml.NewDecoder(file)
 	if err := d.Decode(&config); err != nil {

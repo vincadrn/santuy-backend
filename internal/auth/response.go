@@ -101,7 +101,12 @@ func RequestSession(svc *service.AccountService, ctx context.Context) http.Handl
 
 		var redirectURI OAuthRedirectURI
 		bodyBytes, err := io.ReadAll(r.Body)
-		defer r.Body.Close()
+		defer func() {
+			err = r.Body.Close()
+			if err != nil {
+				log.Fatalf("cannot close auth request session body: %v", err)
+			}
+		}()
 		if err != nil {
 			log.Fatal(err)
 		}

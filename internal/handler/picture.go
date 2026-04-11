@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -194,7 +195,12 @@ func CreateUploadObjectURI(pictSvc *service.PictureService, itinerarySvc *servic
 		}
 
 		var request request.PictureRequest
-		defer r.Body.Close()
+		defer func() {
+			err := r.Body.Close()
+			if err != nil {
+				log.Fatalf("cannot close body: %v", err)
+			}
+		}()
 		err := json.NewDecoder(r.Body).Decode(&request)
 		if err != nil {
 			slog.Error("Cannot decode picture request")

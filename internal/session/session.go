@@ -79,7 +79,7 @@ func (sp *sessionProvider) GetUserName() (string, error) {
 
 	userName, ok := session.Values["name"].(string)
 	if !ok {
-		msg := "Cannot get user name"
+		msg := "cannot get user name"
 		slog.Error(msg)
 
 		return "", errors.New(msg)
@@ -91,7 +91,7 @@ func (sp *sessionProvider) GetUserName() (string, error) {
 func (sp *sessionProvider) GetUserEmail() (string, error) {
 	session, err := sp.store.Get(sp.r, sp.name)
 	if err != nil {
-		slog.Error("Cannot get session")
+		slog.Error("cannot get session")
 		slog.Error(err.Error())
 
 		return "", err
@@ -99,7 +99,7 @@ func (sp *sessionProvider) GetUserEmail() (string, error) {
 
 	email, ok := session.Values["email"].(string)
 	if !ok {
-		msg := "Cannot get user email"
+		msg := "cannot get user email"
 		slog.Error(msg)
 
 		return "", errors.New(msg)
@@ -111,7 +111,7 @@ func (sp *sessionProvider) GetUserEmail() (string, error) {
 func (sp *sessionProvider) GetCurrentGroupRole() (GroupRole, error) {
 	session, err := sp.store.Get(sp.r, sp.name)
 	if err != nil {
-		slog.Error("Cannot get session")
+		slog.Error("cannot get session")
 		slog.Error(err.Error())
 
 		return GroupRole{}, err
@@ -119,7 +119,7 @@ func (sp *sessionProvider) GetCurrentGroupRole() (GroupRole, error) {
 
 	groupRole, ok := session.Values["group_role"].(*GroupRole)
 	if !ok {
-		msg := "Cannot get group ID and role"
+		msg := "cannot get group ID and role"
 		slog.Error(msg)
 
 		return GroupRole{}, errors.New(msg)
@@ -131,7 +131,7 @@ func (sp *sessionProvider) GetCurrentGroupRole() (GroupRole, error) {
 func (sp *sessionProvider) GetOAuth2Verifier() (string, error) {
 	session, err := sp.store.Get(sp.r, sp.name)
 	if err != nil {
-		slog.Error("Cannot get session")
+		slog.Error("cannot get session")
 		slog.Error(err.Error())
 
 		return "", err
@@ -139,7 +139,7 @@ func (sp *sessionProvider) GetOAuth2Verifier() (string, error) {
 
 	oAuth2Verifier, ok := session.Values["oauth2_verifier"].(string)
 	if !ok {
-		msg := "Cannot get oauth verifier"
+		msg := "cannot get oauth verifier"
 		slog.Error(msg)
 
 		return "", errors.New(msg)
@@ -151,7 +151,7 @@ func (sp *sessionProvider) GetOAuth2Verifier() (string, error) {
 func (sp *sessionProvider) GetOAuth2State() (string, error) {
 	session, err := sp.store.Get(sp.r, sp.name)
 	if err != nil {
-		slog.Error("Cannot get session")
+		slog.Error("cannot get session")
 		slog.Error(err.Error())
 
 		return "", err
@@ -159,7 +159,7 @@ func (sp *sessionProvider) GetOAuth2State() (string, error) {
 
 	oAuth2State, ok := session.Values["oauth2_state"].(string)
 	if !ok {
-		msg := "Cannot get oauth state"
+		msg := "cannot get oauth state"
 		slog.Error(msg)
 
 		return "", errors.New(msg)
@@ -171,7 +171,7 @@ func (sp *sessionProvider) GetOAuth2State() (string, error) {
 func (sp *sessionProvider) SetUserName(name string) error {
 	session, err := sp.store.Get(sp.r, sp.name)
 	if err != nil {
-		slog.Error("Cannot get session")
+		slog.Error("cannot get session")
 		slog.Error(err.Error())
 
 		return err
@@ -185,7 +185,7 @@ func (sp *sessionProvider) SetUserName(name string) error {
 func (sp *sessionProvider) SetUserEmail(email string) error {
 	session, err := sp.store.Get(sp.r, sp.name)
 	if err != nil {
-		slog.Error("Cannot get session")
+		slog.Error("cannot get session")
 		slog.Error(err.Error())
 
 		return err
@@ -199,7 +199,7 @@ func (sp *sessionProvider) SetUserEmail(email string) error {
 func (sp *sessionProvider) SetOAuth2Verifier(oAuth2Verifier string) error {
 	session, err := sp.store.Get(sp.r, sp.name)
 	if err != nil {
-		slog.Error("Cannot get session")
+		slog.Error("cannot get session")
 		slog.Error(err.Error())
 
 		return err
@@ -213,7 +213,7 @@ func (sp *sessionProvider) SetOAuth2Verifier(oAuth2Verifier string) error {
 func (sp *sessionProvider) SetCurrentGroupRole(groupRole GroupRole) error {
 	session, err := sp.store.Get(sp.r, sp.name)
 	if err != nil {
-		slog.Error("Cannot get session")
+		slog.Error("cannot get session")
 		slog.Error(err.Error())
 
 		return err
@@ -227,7 +227,7 @@ func (sp *sessionProvider) SetCurrentGroupRole(groupRole GroupRole) error {
 func (sp *sessionProvider) SetOAuth2State(oAuth2State string) error {
 	session, err := sp.store.Get(sp.r, sp.name)
 	if err != nil {
-		slog.Error("Cannot get session")
+		slog.Error("cannot get session")
 		slog.Error(err.Error())
 
 		return err
@@ -241,7 +241,7 @@ func (sp *sessionProvider) SetOAuth2State(oAuth2State string) error {
 func (sp *sessionProvider) DeleteSession() error {
 	session, err := sp.store.Get(sp.r, sp.name)
 	if err != nil {
-		slog.Error("Cannot get session")
+		slog.Error("cannot get session")
 		slog.Error(err.Error())
 
 		return err

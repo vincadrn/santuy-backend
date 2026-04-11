@@ -13,11 +13,11 @@ import (
 
 func ItineraryDetailHandler(svc *service.ItineraryService, ctx context.Context) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodGet {
+		switch r.Method {
+		case http.MethodGet:
 			listItineraryDetails(svc, ctx).ServeHTTP(w, r)
-		} else if r.Method == http.MethodPost {
-			return
-		} else {
+
+		default:
 			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 			return
 		}
