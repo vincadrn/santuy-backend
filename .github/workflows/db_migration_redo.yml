@@ -1,4 +1,4 @@
-name: DB Migration (up)
+name: DB Migration (redo)
 
 on:
   workflow_dispatch:
@@ -15,7 +15,7 @@ on:
 jobs:
   build:
     if: github.actor == 'vincadrn'
-    name: Migrate up
+    name: Redo migration
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
     steps:
@@ -29,11 +29,11 @@ jobs:
             https://raw.githubusercontent.com/pressly/goose/master/install.sh |\
             sh
 
-      - name: Migrate up and echo
+      - name: Redo migration and echo
         id: migrate_up
         env:
           GOOSE_DRIVER: ${{ secrets.GOOSE_DRIVER }}
           GOOSE_DBSTRING: ${{ secrets.GOOSE_DBSTRING }}
           GOOSE_MIGRATION_DIR: ${{ inputs.directory }}
 
-        run: goose up
+        run: goose redo
