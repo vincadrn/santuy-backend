@@ -2,7 +2,7 @@
 BEGIN;
 
 CREATE SCHEMA IF NOT EXISTS account;
-ALTER SCHEMA account OWNER TO vincadrn;
+GRANT USAGE ON SCHEMA account TO vincadrn;
 
 -- public.user_table
 CREATE TABLE IF NOT EXISTS account.user_account (
@@ -12,10 +12,10 @@ CREATE TABLE IF NOT EXISTS account.user_account (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
-ALTER TABLE account.user_account OWNER TO vincadrn;
+GRANT SELECT,INSERT,UPDATE,DELETE ON TABLE account.user_account TO vincadrn;
 
 CREATE SCHEMA IF NOT EXISTS travel;
-ALTER SCHEMA travel OWNER TO vincadrn;
+GRANT USAGE ON SCHEMA travel TO vincadrn;
 
 -- public.group_table
 CREATE TABLE IF NOT EXISTS travel.vacation_group (
@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS travel.vacation_group (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
-ALTER TABLE travel.vacation_group OWNER TO vincadrn;
+GRANT SELECT,INSERT,UPDATE,DELETE ON TABLE travel.vacation_group TO vincadrn;
 
 -- public.groupuser
 -- join table of travel.vacation_group and account.user_account
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS travel.user_vacation_group (
 
   PRIMARY KEY (user_id, group_id)
 );
-ALTER TABLE travel.user_vacation_group OWNER TO vincadrn;
+GRANT SELECT,INSERT,UPDATE,DELETE ON TABLE travel.user_vacation_group TO vincadrn;
 
 -- public.vacation
 CREATE TABLE IF NOT EXISTS travel.vacation (
@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS travel.vacation (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
-ALTER TABLE travel.vacation OWNER TO vincadrn;
+GRANT SELECT,INSERT,UPDATE,DELETE ON TABLE travel.vacation TO vincadrn;
 
 -- public.groupvacation
 -- join table of travel.vacation and travel.vacation_group
@@ -59,7 +59,7 @@ CREATE TABLE IF NOT EXISTS travel.vacation_vacation_group (
 
   PRIMARY KEY (vacation_id, group_id)
 );
-ALTER TABLE travel.vacation_vacation_group OWNER TO vincadrn;
+GRANT SELECT,INSERT,UPDATE,DELETE ON TABLE travel.vacation_vacation_group TO vincadrn;
 
 -- public.itinerary
 CREATE TABLE IF NOT EXISTS travel.itinerary (
@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS travel.itinerary (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
-ALTER TABLE travel.itinerary OWNER TO vincadrn;
+GRANT SELECT,INSERT,UPDATE,DELETE ON TABLE travel.itinerary TO vincadrn;
 
 -- public.list_itinerary
 CREATE TABLE IF NOT EXISTS travel.itinerary_list (
@@ -81,7 +81,7 @@ CREATE TABLE IF NOT EXISTS travel.itinerary_list (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
-ALTER TABLE travel.itinerary_list OWNER TO vincadrn;
+GRANT SELECT,INSERT,UPDATE,DELETE ON TABLE travel.itinerary_list TO vincadrn;
 
 COMMIT;
 
