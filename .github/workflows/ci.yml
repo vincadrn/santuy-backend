@@ -16,6 +16,18 @@ jobs:
     name: Init
     runs-on: ubuntu-latest
     steps:
+      - name: Check if merge commit
+        id: check_merge_commit
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          parents=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA" \
+              --jq '.parents | length')
+
+          if ((parents > 1)); then
+              echo "is_merged=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Checkout branch
         uses: actions/checkout@v6
 
@@ -36,13 +48,13 @@ jobs:
   code_check:
     name: Code check
     needs: [init]
-    if: needs.init.outputs.code-changes-exist == 'true'
+    if: ${{ needs.init.outputs.is_merged == 'true' && needs.init.outputs.code-changes-exist == 'true' }}
     uses: vincadrn/santuy-backend/.github/workflows/code_check.yml@dev
 
   db_migration_check:
     name: Database migration check
     needs: [init]
-    if: needs.init.outputs.db-migration-changes-exist == 'true'
+    if: ${{ needs.init.outputs.is_merged == 'true' && needs.init.outputs.db-migration-changes-exist == 'true' }}
     uses: vincadrn/santuy-backend/.github/workflows/db_migration_check.yml@dev
     with:
       environment: dev
