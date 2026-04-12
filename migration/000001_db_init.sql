@@ -87,8 +87,6 @@ COMMIT;
 
 -- +goose Down
 BEGIN;
-
 DROP SCHEMA account CASCADE;
 DROP SCHEMA travel CASCADE;
-
 COMMIT;
