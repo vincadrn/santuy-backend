@@ -7,6 +7,7 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 
 	_ "github.com/lib/pq"
@@ -21,18 +22,20 @@ import (
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	user := os.Getenv("DB_USER")
-	pass := os.Getenv("DB_PASS")
-	host := os.Getenv("DB_HOST")
-	port := os.Getenv("DB_PORT")
-	dbName := os.Getenv("DB_NAME")
+	user := url.QueryEscape(os.Getenv("DB_USER"))
+	pass := url.QueryEscape(os.Getenv("DB_PASS"))
+	host := url.QueryEscape(os.Getenv("DB_HOST"))
+	port := url.QueryEscape(os.Getenv("DB_PORT"))
+	dbName := url.QueryEscape(os.Getenv("DB_NAME"))
+	sslMode := url.QueryEscape(os.Getenv("DB_SSLMODE"))
 
-	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=verify-full", user, pass, host, port, dbName)
+	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s", user, pass, host, port, dbName, sslMode)
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		slog.Error("Cannot create database connection")
 		slog.Error(err.Error())
 	}
+	log.Printf("db conn str: " + connStr)
 
 	defer func() {
 		err = db.Close()
@@ -76,11 +79,11 @@ func main() {
 	mux.Handle("/v1/logout", auth.RequestLogout())
 
 	var handler http.Handler = mux
-	handler = middleware.AuthMiddleware(handler)
 	handler = middleware.CORSMiddleware(handler)
+	handler = middleware.AuthMiddleware(handler)
 
 	server := new(http.Server)
-	server.Addr = ":9000"
+	server.Addr = ":8080"
 	server.Handler = handler
 
 	log.Println("Server started at " + server.Addr)
