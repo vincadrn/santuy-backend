@@ -1,0 +1,39 @@
+name: DB Migration (redo)
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        required: true
+        type: string
+
+      directory:
+        default: migration
+        required: true
+        type: string
+
+jobs:
+  build:
+    if: github.actor == 'vincadrn'
+    name: Redo migration
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v6
+
+      # See https://pressly.github.io/goose/installation
+      - name: Install goose
+        run: |
+          curl -fsSL \
+            https://raw.githubusercontent.com/pressly/goose/master/install.sh |\
+            sh
+
+      - name: Redo migration and echo
+        id: migrate_up
+        env:
+          GOOSE_DRIVER: ${{ secrets.GOOSE_DRIVER }}
+          GOOSE_DBSTRING: ${{ secrets.GOOSE_DBSTRING }}
+          GOOSE_MIGRATION_DIR: ${{ inputs.directory }}
+
+        run: goose redo
