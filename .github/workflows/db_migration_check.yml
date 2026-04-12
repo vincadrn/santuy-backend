@@ -11,6 +11,13 @@ on:
         required: true
         type: string
 
+    secrets:
+      GOOSE_DRIVER:
+        required: true
+
+      GOOSE_DBSTRING:
+        required: true
+
 jobs:
   build:
     name: Validate migration files
