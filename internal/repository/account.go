@@ -3,8 +3,10 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"log/slog"
 	"strconv"
+	"time"
 
 	"vincadrn.com/santuy/internal/model"
 )
@@ -13,7 +15,8 @@ type AccountRepository interface {
 	GetUserByEmail(ctx context.Context, email string) (*model.User, error)
 	SaveUser(ctx context.Context, user *model.User) error
 	ListGroupsByUser(ctx context.Context, user *model.User) (*[]model.GroupRole, error)
-	SetUserToGroup(ctx context.Context, user *model.User, group *model.Group) error
+	CreateGroupInvite(ctx context.Context, group *model.Group, token string, user *model.User) error
+	SetUserToGroup(ctx context.Context, user *model.User, token string) (string, error)
 }
 
 type accountRepository struct {
@@ -130,8 +133,27 @@ func (r *accountRepository) ListGroupsByUser(ctx context.Context, user *model.Us
 	return groups, nil
 }
 
-func (r *accountRepository) SetUserToGroup(ctx context.Context, user *model.User, group *model.Group) error {
-	slog.Info("Attempting to set user to group", "user", user.Email, "group", group.Id)
+func (r *accountRepository) CreateGroupInvite(ctx context.Context, group *model.Group, token string, user *model.User) error {
+	slog.Info("creating group invite", "group", group.Name, "user", user.Email)
+
+	_, err := r.db.ExecContext(
+		ctx,
+		// TODO: Maybe not-hard-coded 1) expiration time, 2) max use?
+		`INSERT INTO account.group_invite (group_id, token, expires_at, max_uses, created_by, updated_by)
+		VALUES ($1, $2, NOW() + INTERVAL '24 hours', 5, $3, $3)`,
+		group.Id, token, user.Id,
+	)
+
+	if err != nil {
+		slog.Error("cannot create group invite", "group", group.Name, "user", user.Email)
+		slog.Error(err.Error())
+	}
+
+	return nil
+}
+
+func (r *accountRepository) SetUserToGroup(ctx context.Context, user *model.User, token string) (string, error) {
+	slog.Info("attempting to set user to group", "user", user.Email)
 	tx, err := r.db.Begin()
 	defer func() {
 		if p := recover(); p != nil {
@@ -143,23 +165,55 @@ func (r *accountRepository) SetUserToGroup(ctx context.Context, user *model.User
 	}()
 
 	if err != nil {
-		slog.Error("Cannot start tx to set user to group", "user", user.Email, "group", group.Id)
+		slog.Error("cannot start tx to set user to group", "user", user.Email)
 		slog.Error(err.Error())
 
-		return err
+		return "", err
 	}
 
+	// Check for group invite
+	var inviteId int
+	var groupId string
+	var expiresAt time.Time
+	var maxUses, usedCount int
+	err = tx.QueryRowContext(
+		ctx,
+		`SELECT id, group_id, expires_at, max_uses, used_count
+		FROM account.group_invite
+		WHERE token = $1
+		FOR UPDATE
+		`,
+		token,
+	).Scan(&inviteId, &groupId, &expiresAt, &maxUses, &usedCount)
+
+	if err != nil {
+		slog.Error("cannot get invite from token", "error", err)
+		return "", errors.New("invalid token")
+	}
+
+	now := time.Now()
+	if now.After(expiresAt) {
+		slog.Error("expired token", "now", now, "expires", expiresAt)
+		return "", errors.New("token expired")
+	}
+
+	if usedCount >= maxUses {
+		slog.Error("token usage exceeded", "usage", usedCount, "max", maxUses)
+		return "", errors.New("token usage exceeded")
+	}
+
+	// Add user to group
 	defaultRole := "member"
 
 	numericUserId, err := strconv.Atoi(user.Id)
 	if err != nil {
-		slog.Error("user id is invalid", "user", user.Email, "userId", user.Id, "group", group.Id)
+		slog.Error("user id is invalid", "user", user.Email, "userId", user.Id)
 		slog.Error(err.Error())
 
-		return err
+		return "", err
 	}
 
-	res, err := r.db.ExecContext(
+	_, err = tx.ExecContext(
 		ctx,
 		`INSERT INTO travel.user_vacation_group
 		(user_id, group_id, role)
@@ -167,25 +221,38 @@ func (r *accountRepository) SetUserToGroup(ctx context.Context, user *model.User
 		($1, $2, $3)
 		ON CONFLICT DO NOTHING
 		`,
-		numericUserId, group.Id, defaultRole,
+		numericUserId, groupId, defaultRole,
 	)
 	if err != nil {
-		slog.Error("Cannot set user to group", "user", user.Email, "group", group.Id)
+		slog.Error("cannot set user to group", "user", user.Email, "group", groupId)
 		slog.Error(err.Error())
 
-		return err
+		return "", err
 	}
 
-	affectedRows, _ := res.RowsAffected()
-	slog.Info("Set user to group successful", "user", user.Email, "group", group.Id, "affected_rows", affectedRows)
+	// Increment token usage of the group invite
+	_, err = tx.ExecContext(
+		ctx,
+		`UPDATE account.group_invite SET used_count = used_count + 1
+		WHERE id = $1`,
+		inviteId,
+	)
+	if err != nil {
+		slog.Error("cannot increment token usage")
+		slog.Error(err.Error())
 
+		return "", err
+	}
+
+	// Finally commit
 	err = tx.Commit()
+
 	if err != nil {
 		slog.Error("Cannot commit tx when setting user to group")
 		slog.Error(err.Error())
 
-		return err
+		return "", err
 	}
 
-	return nil
+	return groupId, nil
 }

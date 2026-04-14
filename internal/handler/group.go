@@ -130,12 +130,9 @@ func joinGroup(svc *service.AccountService, ctx context.Context) http.Handler {
 			return
 		}
 
-		requestedGroup := model.Group{
-			Id: request.GroupId,
-		}
-		err = svc.AssignUserToGroup(ctx, user, &requestedGroup)
+		groupId, err := svc.AssignUserToGroup(ctx, user, request.Token)
 		if err != nil {
-			slog.Error("Cannot assign user to group", "user", email, "group", requestedGroup.Name)
+			slog.Error("Cannot assign user to group", "user", email)
 			slog.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 
@@ -144,12 +141,12 @@ func joinGroup(svc *service.AccountService, ctx context.Context) http.Handler {
 
 		// Write session
 		groupRole := session.GroupRole{
-			GroupId: requestedGroup.Id,
+			GroupId: groupId,
 			Role:    "member",
 		}
 		err = sessionProvider.SetCurrentGroupRole(groupRole)
 		if err != nil {
-			slog.Error("Cannot set group ID and role to session", "user", email, "group", requestedGroup.Name)
+			slog.Error("Cannot set group ID and role to session", "user", email, "groupId", groupId)
 			slog.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 
